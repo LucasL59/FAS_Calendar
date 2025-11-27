@@ -127,16 +127,18 @@ body {
 }
 
 
-.fc-google-style .fc-col-header {
+/* 月視圖隱藏欄標題（星期顯示在日期格子第一行） */
+.fc-google-style .fc-dayGridMonth-view .fc-col-header {
   display: none;
 }
 
-.fc-google-style .fc-col-header-cell-cushion {
-  font-size: 0.6875rem;
+/* 週/日視圖欄標題樣式 */
+.fc-google-style .fc-timegrid-view .fc-col-header-cell-cushion {
+  font-size: 0.75rem;
   font-weight: 500;
   color: #70757a;
-  text-transform: uppercase;
-  padding: 4px 8px;
+  text-transform: none;
+  padding: 8px 4px;
 }
 
 /* 日期格子 */
@@ -152,6 +154,7 @@ body {
   padding: 4px 6px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 3px;
 }
 
@@ -162,8 +165,40 @@ body {
   letter-spacing: 0.08em;
 }
 
+.fc-google-style .fc-daygrid-day-number-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.fc-google-style .fc-daygrid-day-number-text {
+  font-size: 0.875rem;
+  color: #70757a;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.fc-google-style .fc-daygrid-day-number-text.is-today {
+  background: #1a73e8;
+  color: #fff !important;
+}
+
+.fc-google-style .fc-daygrid-lunar-text {
+  font-size: 0.6rem;
+  color: #9aa0a6;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .fc-google-style .fc-daygrid-day-top {
   flex-direction: row;
+  justify-content: center;
   padding: 4px 8px;
 }
 
@@ -171,17 +206,11 @@ body {
   font-size: 0.875rem;
   color: #70757a;
   padding: 0;
-}
-
-.fc-google-style .fc-day-today .fc-daygrid-day-number {
-  background: #1a73e8;
-  color: #fff;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* 移除今日背景，改用 .fc-daygrid-day-number-text.is-today */
+  background: transparent !important;
+  border-radius: 0 !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 .fc-google-style .fc-day-today {
@@ -593,6 +622,13 @@ body {
 }
 
 /* ===== 週視圖/日視圖增強 ===== */
+
+/* 週/日視圖今日欄標題樣式（Google Calendar 風格） */
+.fc-google-style .fc-timegrid-view .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  color: #1a73e8;
+  font-weight: 600;
+}
+
 /* 時間指示線圓點 */
 .fc-google-style .fc-timegrid-now-indicator-line::before {
   content: '';
@@ -707,8 +743,14 @@ body {
 }
 
 :root.dark .fc-google-style .fc-daygrid-day-number,
+:root.dark .fc-google-style .fc-daygrid-day-number-text,
 :root.dark .fc-google-style .fc-col-header-cell-cushion {
   color: #cbd5e1 !important;
+}
+
+:root.dark .fc-google-style .fc-daygrid-day-number-text.is-today {
+  background: #3b82f6 !important;
+  color: #fff !important;
 }
 
 :root.dark .fc-google-style .fc-daygrid-weekday-label {
@@ -717,6 +759,15 @@ body {
 
 :root.dark .fc-google-style .fc-daygrid-lunar-text {
   color: #64748b !important;
+}
+
+/* 農曆日期顯示/隱藏控制 */
+.fc-google-style.hide-lunar .fc-daygrid-lunar-text {
+  display: none !important;
+}
+
+.fc-google-style.show-lunar .fc-daygrid-lunar-text {
+  display: inline;
 }
 
 /* 視圖切換按鈕深色 */
@@ -835,6 +886,11 @@ body {
 /* 迷你月曆今日深色 */
 :root.dark .mini-calendar-today::after {
   border-color: rgba(59, 130, 246, 0.4);
+}
+
+/* 週視圖今日標頭深色模式 */
+:root.dark .fc-google-style .fc-timegrid-view .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  color: #60a5fa;
 }
 
 /* 深色模式下保持事件顏色鮮明 */

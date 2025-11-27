@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Menu, X, Settings, Search, HelpCircle, Clock, Sun, Moon, Monitor } from 'lucide-react';
+import { Menu, X, Settings, Search, HelpCircle, Clock, Sun, Moon, Monitor, Plus } from 'lucide-react';
 import { CalendarView } from './components/CalendarView';
 import { UserSelector } from './components/UserSelector';
 import { MiniMonthCalendar } from './components/MiniMonthCalendar';
@@ -41,6 +41,10 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAvailabilityFinder, setShowAvailabilityFinder] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [showLunar, setShowLunar] = useState(() => {
+    const saved = localStorage.getItem('fas-calendar:show-lunar');
+    return saved !== 'false'; // 預設開啟
+  });
   
   // 深色模式：'light' | 'dark' | 'system'
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
@@ -71,6 +75,10 @@ function App() {
       console.warn('無法儲存自訂顏色設定', error);
     }
   }, [userColorOverrides]);
+
+  useEffect(() => {
+    localStorage.setItem('fas-calendar:show-lunar', String(showLunar));
+  }, [showLunar]);
 
   const updateCalendarTitle = useCallback(() => {
     const api = calendarApiRef.current;
@@ -258,6 +266,8 @@ function App() {
           holidays={sidebarHolidays}
           showHolidays={showHolidays}
           onToggleHolidays={toggleHolidays}
+          showLunar={showLunar}
+          onToggleLunar={() => setShowLunar(prev => !prev)}
           userColorOverrides={userColorOverrides}
           onUserColorChange={handleUserColorChange}
         />
@@ -270,6 +280,7 @@ function App() {
     sidebarHolidays,
     showHolidays,
     toggleHolidays,
+    showLunar,
     viewAnchorDate,
     focusDate,
     userColorOverrides,
@@ -406,6 +417,19 @@ function App() {
           </div>
           <div className="hidden lg:block h-8 w-[1px] bg-gray-200 dark:bg-gray-700" />
           
+          {/* 建立事件按鈕 */}
+          <button 
+            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium shadow-sm hover:shadow transition-all"
+            onClick={() => {
+              // 開啟 Outlook Web 新增事件頁面
+              window.open('https://outlook.office.com/calendar/0/deeplink/compose', '_blank');
+            }}
+            title="建立新事件"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden md:inline">建立</span>
+          </button>
+          
           {/* 尋找空檔按鈕 */}
           <button 
             className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm transition-colors"
@@ -512,6 +536,7 @@ function App() {
                 selectedUsers={selectedUsers}
                 holidays={TAIWAN_HOLIDAYS}
                 showHolidays={showHolidays}
+                showLunar={showLunar}
                 initialDate={initialCalendarDate}
                 focusDate={focusDate ?? undefined}
                 view={calendarView}

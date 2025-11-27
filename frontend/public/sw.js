@@ -44,6 +44,11 @@ self.addEventListener('fetch', (event) => {
   // 只處理 GET 請求
   if (event.request.method !== 'GET') return;
 
+  // 跳過非 http/https 請求（如 chrome-extension://）
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+
   // API 請求不快取
   if (event.request.url.includes('/api/')) {
     return;

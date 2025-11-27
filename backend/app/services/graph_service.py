@@ -84,6 +84,8 @@ class GraphService:
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
+            # 設定時區偏好，讓 Graph API 返回台灣時區的時間
+            "Prefer": 'outlook.timezone="Asia/Taipei"',
         }
 
         response = await client.request(method, url, headers=headers, **kwargs)
@@ -155,11 +157,13 @@ class GraphService:
             events: List[CalendarEvent] = []
             for event in data.get("value", []):
                 try:
-                    # 解析開始時間
+                    # 解析開始時間 (Graph API 已根據 Prefer header 返回台灣時區時間)
                     start_info = event.get("start", {})
                     start_dt_str = start_info.get("dateTime", "")
                     if start_dt_str:
-                        start_dt = datetime.fromisoformat(start_dt_str.replace("Z", "+00:00"))
+                        # 移除可能的時區資訊，因為已經是台灣時間
+                        clean_start = start_dt_str.split("+")[0].split("Z")[0]
+                        start_dt = datetime.fromisoformat(clean_start)
                     else:
                         start_dt = datetime.now()
 
@@ -167,7 +171,8 @@ class GraphService:
                     end_info = event.get("end", {})
                     end_dt_str = end_info.get("dateTime", "")
                     if end_dt_str:
-                        end_dt = datetime.fromisoformat(end_dt_str.replace("Z", "+00:00"))
+                        clean_end = end_dt_str.split("+")[0].split("Z")[0]
+                        end_dt = datetime.fromisoformat(clean_end)
                     else:
                         end_dt = start_dt + timedelta(hours=1)
 

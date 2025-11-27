@@ -22,6 +22,8 @@ interface UserSelectorProps {
   showHolidays?: boolean;
   holidays?: CalendarEvent[];
   onToggleHolidays?: () => void;
+  showLunar?: boolean;
+  onToggleLunar?: () => void;
   userColorOverrides?: Record<string, string>;
   onUserColorChange?: (email: string, color: string) => void;
 }
@@ -33,6 +35,8 @@ export function UserSelector({
   showHolidays = true,
   holidays = [],
   onToggleHolidays,
+  showLunar = true,
+  onToggleLunar,
   userColorOverrides = {},
   onUserColorChange,
 }: UserSelectorProps) {
@@ -198,13 +202,13 @@ export function UserSelector({
               type="button"
               onClick={() => setIsPersonalCollapsed((prev) => !prev)}
               className="p-1 rounded hover:bg-gray-100 transition-colors"
-              aria-label="切換我的日曆收合"
+              aria-label="切換其他日曆收合"
             >
               <ChevronDown
                 className={`w-4 h-4 text-gray-500 transition-transform ${isPersonalCollapsed ? '-rotate-90' : ''}`}
               />
             </button>
-            我的日曆
+            其他日曆
           </h3>
         </div>
 
@@ -220,6 +224,21 @@ export function UserSelector({
               {showHolidays && <Check className="w-3 h-3 text-white stroke-[3]" />}
             </div>
             <div className="flex-1 min-w-0 text-gray-700 font-medium">台灣節日</div>
+          </label>
+        )}
+
+        {!isPersonalCollapsed && onToggleLunar && (
+          <label
+            className="flex items-center gap-3 px-3 py-1.5 rounded-r-full cursor-pointer hover:bg-gray-100 transition-colors text-sm"
+            onClick={onToggleLunar}
+          >
+            <div
+              className="w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0 border-amber-500"
+              style={{ backgroundColor: showLunar ? '#f59e0b' : 'transparent' }}
+            >
+              {showLunar && <Check className="w-3 h-3 text-white stroke-[3]" />}
+            </div>
+            <div className="flex-1 min-w-0 text-gray-700 font-medium">農曆日期</div>
           </label>
         )}
 

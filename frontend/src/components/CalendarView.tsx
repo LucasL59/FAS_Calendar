@@ -84,6 +84,7 @@ interface CalendarViewProps {
   selectedUsers: string[];
   holidays: CalendarEvent[];
   showHolidays: boolean;
+  showLunar?: boolean;
   initialDate?: Date;
   focusDate?: Date;
   view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
@@ -100,6 +101,7 @@ export function CalendarView({
   selectedUsers,
   holidays,
   showHolidays,
+  showLunar = true,
   initialDate,
   focusDate,
   view,
@@ -308,6 +310,7 @@ export function CalendarView({
     return;
   }, [hideDefaultMorePopovers]);
 
+  // 渲染日期格子（農曆始終渲染，用 CSS 控制顯示）
   const renderDayCell = useCallback((args: DayCellContentArg) => {
     const date = args.date;
     const lunar = solarlunar.solar2lunar(
@@ -316,23 +319,42 @@ export function CalendarView({
       date.getDate()
     );
 
-    const lunarLabel = lunar.festival || lunar.Term || lunar.IDayCn;
+    // solarlunar 返回的屬性: dayCn (農曆日), monthCn (農曆月), festival (節日), Term (節氣)
+    const lunarText = lunar.festival || lunar.Term || lunar.dayCn;
+    const lunarLabel = lunarText ? `(${lunarText})` : '';
     const isToday = args.isToday;
-    const weekdayLabels = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
-    const millisecondsInDay = 24 * 60 * 60 * 1000;
-    const viewStart = args.view.activeStart ?? args.view.currentStart;
-    const daysFromViewStart = Math.floor(
-      (date.getTime() - viewStart.getTime()) / millisecondsInDay
-    );
-    const isFirstGridRow = daysFromViewStart >= 0 && daysFromViewStart < 7;
-    const weekdayLabel = weekdayLabels[date.getDay()];
+    const isMonthView = args.view.type === 'dayGridMonth';
 
+    // 星期標籤只在月視圖的第一行顯示
+    if (isMonthView) {
+      const weekdayLabels = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+      const millisecondsInDay = 24 * 60 * 60 * 1000;
+      const viewStart = args.view.activeStart ?? args.view.currentStart;
+      const daysFromViewStart = Math.floor(
+        (date.getTime() - viewStart.getTime()) / millisecondsInDay
+      );
+      const showWeekday = daysFromViewStart >= 0 && daysFromViewStart < 7;
+      const weekdayLabel = weekdayLabels[date.getDay()];
+
+      return {
+        html: `
+          <div class="fc-daygrid-cell-content">
+            ${showWeekday ? `<div class="fc-daygrid-weekday-label">${weekdayLabel}</div>` : ''}
+            <div class="fc-daygrid-day-number-row">
+              <div class="fc-daygrid-day-number-text ${isToday ? 'is-today' : ''}">${date.getDate()}</div>
+              <div class="fc-daygrid-lunar-text">${lunarLabel ?? ''}</div>
+            </div>
+          </div>
+        `,
+      };
+    }
+
+    // 週/日視圖只顯示日期（星期由欄標題顯示）
     return {
       html: `
         <div class="fc-daygrid-cell-content">
-          ${isFirstGridRow ? `<div class="fc-daygrid-weekday-label">${weekdayLabel}</div>` : ''}
-          <div class="fc-daygrid-day-number-wrapper ${isToday ? 'is-today' : ''}">
-            <div class="fc-daygrid-day-number-text">${date.getDate()}</div>
+          <div class="fc-daygrid-day-number-row">
+            <div class="fc-daygrid-day-number-text ${isToday ? 'is-today' : ''}">${date.getDate()}</div>
             <div class="fc-daygrid-lunar-text">${lunarLabel ?? ''}</div>
           </div>
         </div>
@@ -393,7 +415,7 @@ export function CalendarView({
   }, [view]);
 
   return (
-    <div ref={calendarContainerRef} className="h-full fc-google-style">
+    <div ref={calendarContainerRef} className={`h-full fc-google-style ${showLunar ? 'show-lunar' : 'hide-lunar'}`}>
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
@@ -410,7 +432,7 @@ export function CalendarView({
         locale="zh-tw"
         firstDay={0}
         height="100%"
-        fixedWeekCount={true}
+        fixedWeekCount={false}
         expandRows={true}
         events={events}
         eventClick={handleEventClick}
@@ -437,7 +459,7 @@ export function CalendarView({
         moreLinkClick={handleMoreLinkClick}
         moreLinkClassNames="text-[11px]"
         moreLinkContent={(args) => `+${args.num} 更多`}
-        navLinks={true}
+        navLinks={false}
         weekNumbers={false}
         dayHeaderFormat={undefined}
         dayCellContent={renderDayCell}
