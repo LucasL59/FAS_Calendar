@@ -44,11 +44,13 @@ function getAdaptiveTextColor(hex: string, preferLight = false): string {
   const r = Number.parseInt(normalized.slice(0, 2), 16) / 255;
   const g = Number.parseInt(normalized.slice(2, 4), 16) / 255;
   const b = Number.parseInt(normalized.slice(4, 6), 16) / 255;
+  // 計算相對亮度 (WCAG 公式)
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  // 優先白色文字時，提高閾值讓更多顏色使用白色（改善可讀性）
   if (preferLight) {
-    return luminance < 0.7 ? '#ffffff' : '#111827';
+    return luminance < 0.75 ? '#ffffff' : '#1f2937';
   }
-  return luminance > 0.55 ? '#111827' : '#ffffff';
+  return luminance > 0.5 ? '#1f2937' : '#ffffff';
 }
 
 type MoreLinkArgWithSegs = MoreLinkArg & {

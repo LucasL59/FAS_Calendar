@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { X, MapPin, Clock, User } from 'lucide-react';
+import { X, MapPin, Clock, User, ExternalLink, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import type { CalendarEvent, EventAnchorRect } from '../types/calendar';
@@ -29,6 +29,38 @@ export function EventDetailModal({ event, onClose, highlightColor = '#1a73e8', a
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardSize, setCardSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const [animateIn, setAnimateIn] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // 複製事件資訊
+  const handleCopy = async () => {
+    if (!event) return;
+    const startStr = format(new Date(event.start.dateTime), 'yyyy/MM/dd HH:mm', { locale: zhTW });
+    const endStr = format(new Date(event.end.dateTime), 'yyyy/MM/dd HH:mm', { locale: zhTW });
+    const text = `${event.subject}\n時間: ${startStr} - ${endStr}\n人員: ${event.userName}${event.location?.displayName ? `\n地點: ${event.location.displayName}` : ''}`;
+    
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('複製失敗:', err);
+    }
+  };
+
+  // 生成 Outlook Web 連結
+  const outlookWebUrl = useMemo(() => {
+    if (!event) return null;
+    // 使用 Outlook Web 的新增事件連結（方便使用者建立類似事件）
+    const startDate = new Date(event.start.dateTime);
+    const endDate = new Date(event.end.dateTime);
+    const params = new URLSearchParams({
+      subject: event.subject,
+      startdt: startDate.toISOString(),
+      enddt: endDate.toISOString(),
+      location: event.location?.displayName || '',
+    });
+    return `https://outlook.office.com/calendar/0/deeplink/compose?${params.toString()}`;
+  }, [event]);
 
   useLayoutEffect(() => {
     if (!event) return;
@@ -232,13 +264,41 @@ export function EventDetailModal({ event, onClose, highlightColor = '#1a73e8', a
         </div>
 
         {/* 底部按鈕 */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="w-full btn btn-secondary"
-          >
-            關閉
-          </button>
+        <div className="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-2">
+            {/* 複製按鈕 */}
+            <button
+              onClick={handleCopy}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm"
+              title="複製事件資訊"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-green-600" />
+                  <span className="text-green-600">已複製</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>複製</span>
+                </>
+              )}
+            </button>
+
+            {/* Outlook 連結 */}
+            {outlookWebUrl && (
+              <a
+                href={outlookWebUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                title="在 Outlook 中建立類似事件"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Outlook</span>
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -152,115 +152,129 @@ async def get_availability(
     - **duration**: 會議時長 (分鐘)，預設 60 分鐘
     - **users**: 使用者信箱 (逗號分隔)，留空則查詢所有人
     """
-    # 決定要查詢的使用者
-    if users:
-        user_emails = [email.strip() for email in users.split(",") if email.strip()]
-    else:
-        user_emails = settings.user_email_list
-
-    if not user_emails:
-        return AvailabilityResponse(slots=[], checkedUsers=[])
-
-    # 從快取取得資料
-    calendars = cache_service.get_all_calendars(user_emails)
-
-    if not calendars:
-        return AvailabilityResponse(slots=[], checkedUsers=user_emails)
-
-    # 收集所有忙碌時段
-    busy_slots: List[tuple] = []
-    for email, events in calendars.items():
-        for event in events:
-            # 只考慮忙碌和暫定的事件
-            if event.show_as in ["busy", "tentative", "oof"]:
-                event_start = event.start.date_time
-                event_end = event.end.date_time
-
-                # 確保在查詢範圍內
-                if event_end > start and event_start < end:
-                    busy_slots.append((
-                        max(event_start, start),
-                        min(event_end, end),
-                    ))
-
-    # 合併重疊的忙碌時段
-    busy_slots.sort(key=lambda x: x[0])
-    merged_busy: List[tuple] = []
-    for slot_start, slot_end in busy_slots:
-        if merged_busy and slot_start <= merged_busy[-1][1]:
-            # 與前一個時段重疊，合併
-            merged_busy[-1] = (merged_busy[-1][0], max(merged_busy[-1][1], slot_end))
+    try:
+        # 移除 timezone 資訊以確保比較一致
+        start_naive = start.replace(tzinfo=None) if start.tzinfo else start
+        end_naive = end.replace(tzinfo=None) if end.tzinfo else end
+        
+        # 決定要查詢的使用者
+        if users:
+            user_emails = [email.strip() for email in users.split(",") if email.strip()]
         else:
-            merged_busy.append((slot_start, slot_end))
+            user_emails = settings.user_email_list
 
-    # 找出空檔時段
-    available_slots: List[AvailabilitySlot] = []
-    duration_delta = timedelta(minutes=duration)
+        if not user_emails:
+            return AvailabilityResponse(slots=[], checkedUsers=[])
 
-    # 工作時間設定 (9:00 - 18:00)
-    work_start_hour = 9
-    work_end_hour = 18
+        # 從快取取得資料
+        calendars = cache_service.get_all_calendars(user_emails)
 
-    current = start
-    busy_index = 0
+        if not calendars:
+            return AvailabilityResponse(slots=[], checkedUsers=user_emails)
 
-    while current < end:
-        # 跳過非工作時間
-        if current.hour < work_start_hour:
-            current = current.replace(hour=work_start_hour, minute=0, second=0, microsecond=0)
-            continue
-        if current.hour >= work_end_hour:
-            current = (current + timedelta(days=1)).replace(
-                hour=work_start_hour, minute=0, second=0, microsecond=0
-            )
-            continue
+        # 收集所有忙碌時段
+        busy_slots: List[tuple] = []
+        for email, events in calendars.items():
+            for event in events:
+                # 只考慮忙碌和暫定的事件
+                if event.show_as in ["busy", "tentative", "oof"]:
+                    # 確保 datetime 是 naive (無 timezone)
+                    event_start = event.start.date_time
+                    event_end = event.end.date_time
+                    
+                    if event_start.tzinfo:
+                        event_start = event_start.replace(tzinfo=None)
+                    if event_end.tzinfo:
+                        event_end = event_end.replace(tzinfo=None)
 
-        # 跳過週末
-        if current.weekday() >= 5:  # 週六=5, 週日=6
-            current = (current + timedelta(days=1)).replace(
-                hour=work_start_hour, minute=0, second=0, microsecond=0
-            )
-            continue
+                    # 確保在查詢範圍內
+                    if event_end > start_naive and event_start < end_naive:
+                        busy_slots.append((
+                            max(event_start, start_naive),
+                            min(event_end, end_naive),
+                        ))
 
-        # 檢查是否與忙碌時段重疊
-        while busy_index < len(merged_busy) and merged_busy[busy_index][1] <= current:
-            busy_index += 1
+        # 合併重疊的忙碌時段
+        busy_slots.sort(key=lambda x: x[0])
+        merged_busy: List[tuple] = []
+        for slot_start, slot_end in busy_slots:
+            if merged_busy and slot_start <= merged_busy[-1][1]:
+                # 與前一個時段重疊，合併
+                merged_busy[-1] = (merged_busy[-1][0], max(merged_busy[-1][1], slot_end))
+            else:
+                merged_busy.append((slot_start, slot_end))
 
-        if busy_index < len(merged_busy) and merged_busy[busy_index][0] <= current:
-            # 目前時間在忙碌時段內，跳到忙碌結束
-            current = merged_busy[busy_index][1]
-            continue
+        # 找出空檔時段
+        available_slots: List[AvailabilitySlot] = []
+        duration_delta = timedelta(minutes=duration)
 
-        # 計算可用時段結束時間
-        slot_end = current + duration_delta
+        # 工作時間設定 (9:00 - 18:00)
+        work_start_hour = 9
+        work_end_hour = 18
 
-        # 確保不超過工作時間
-        day_end = current.replace(hour=work_end_hour, minute=0, second=0, microsecond=0)
-        if slot_end > day_end:
-            current = (current + timedelta(days=1)).replace(
-                hour=work_start_hour, minute=0, second=0, microsecond=0
-            )
-            continue
+        current = start_naive
+        busy_index = 0
 
-        # 確保不與忙碌時段重疊
-        if busy_index < len(merged_busy) and slot_end > merged_busy[busy_index][0]:
-            current = merged_busy[busy_index][1]
-            continue
+        while current < end_naive:
+            # 跳過非工作時間
+            if current.hour < work_start_hour:
+                current = current.replace(hour=work_start_hour, minute=0, second=0, microsecond=0)
+                continue
+            if current.hour >= work_end_hour:
+                current = (current + timedelta(days=1)).replace(
+                    hour=work_start_hour, minute=0, second=0, microsecond=0
+                )
+                continue
 
-        # 找到一個空檔
-        available_slots.append(AvailabilitySlot(
-            start=current,
-            end=slot_end,
-            durationMinutes=duration,
-        ))
+            # 跳過週末
+            if current.weekday() >= 5:  # 週六=5, 週日=6
+                current = (current + timedelta(days=1)).replace(
+                    hour=work_start_hour, minute=0, second=0, microsecond=0
+                )
+                continue
 
-        # 移動到下一個時段 (以 30 分鐘為單位)
-        current = current + timedelta(minutes=30)
+            # 檢查是否與忙碌時段重疊
+            while busy_index < len(merged_busy) and merged_busy[busy_index][1] <= current:
+                busy_index += 1
 
-    return AvailabilityResponse(
-        slots=available_slots[:50],  # 最多回傳 50 個時段
-        checkedUsers=user_emails,
-    )
+            if busy_index < len(merged_busy) and merged_busy[busy_index][0] <= current:
+                # 目前時間在忙碌時段內，跳到忙碌結束
+                current = merged_busy[busy_index][1]
+                continue
+
+            # 計算可用時段結束時間
+            slot_end = current + duration_delta
+
+            # 確保不超過工作時間
+            day_end = current.replace(hour=work_end_hour, minute=0, second=0, microsecond=0)
+            if slot_end > day_end:
+                current = (current + timedelta(days=1)).replace(
+                    hour=work_start_hour, minute=0, second=0, microsecond=0
+                )
+                continue
+
+            # 確保不與忙碌時段重疊
+            if busy_index < len(merged_busy) and slot_end > merged_busy[busy_index][0]:
+                current = merged_busy[busy_index][1]
+                continue
+
+            # 找到一個空檔
+            available_slots.append(AvailabilitySlot(
+                start=current,
+                end=slot_end,
+                durationMinutes=duration,
+            ))
+
+            # 移動到下一個時段 (以 30 分鐘為單位)
+            current = current + timedelta(minutes=30)
+
+        return AvailabilityResponse(
+            slots=available_slots[:50],  # 最多回傳 50 個時段
+            checkedUsers=user_emails,
+        )
+    except Exception as e:
+        logger.error(f"查詢空檔時發生錯誤: {e}")
+        raise HTTPException(status_code=500, detail=f"查詢空檔失敗: {str(e)}")
 
 
 @router.get("/users", response_model=List[UserInfo])

@@ -538,3 +538,355 @@ body {
     min-height: 80px;
   }
 }
+
+/* ===== 今日日期脈動動畫 ===== */
+.today-pulse {
+  position: relative;
+}
+
+.today-pulse::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: rgba(26, 115, 232, 0.15);
+  animation: today-pulse-animation 2s ease-in-out infinite;
+}
+
+@keyframes today-pulse-animation {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+/* 迷你月曆今日樣式 */
+.mini-calendar-today {
+  position: relative;
+  background: #1a73e8 !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.mini-calendar-today::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid rgba(26, 115, 232, 0.3);
+  animation: today-ring-pulse 2s ease-in-out infinite;
+}
+
+@keyframes today-ring-pulse {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* ===== 週視圖/日視圖增強 ===== */
+/* 時間指示線圓點 */
+.fc-google-style .fc-timegrid-now-indicator-line::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: -5px;
+  width: 12px;
+  height: 12px;
+  background: #ea4335;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(234, 67, 53, 0.4);
+}
+
+/* 週視圖事件內容改善 */
+.fc-google-style .fc-timegrid-event .fc-event-main {
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fc-google-style .fc-timegrid-event .fc-event-title {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+.fc-google-style .fc-timegrid-event .fc-event-time {
+  display: block !important;
+  font-size: 0.6875rem;
+  opacity: 0.85;
+}
+
+/* 週視圖欄寬度平均 */
+.fc-google-style .fc-timegrid-col {
+  border-left: 1px solid var(--fc-border-color);
+}
+
+/* 全天事件區域改善 */
+.fc-google-style .fc-timegrid-axis {
+  width: 56px !important;
+}
+
+/* ===== 深色模式 ===== */
+/* 基於 .dark class 的深色模式（可手動切換） */
+:root.dark {
+  color-scheme: dark;
+}
+
+:root.dark body {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Header 深色 */
+:root.dark header {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* 側邊欄深色 */
+:root.dark aside {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* 主區域深色 */
+:root.dark main {
+  background: #0f172a !important;
+}
+
+/* Header 按鈕文字優化（今天、箭頭） */
+:root.dark .fc-google-style .fc-toolbar-title {
+  color: #f1f5f9 !important;
+}
+
+:root.dark .fc-google-style .fc-today-button,
+:root.dark .fc-google-style .fc-prev-button,
+:root.dark .fc-google-style .fc-next-button {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+:root.dark .fc-google-style .fc-today-button:hover,
+:root.dark .fc-google-style .fc-prev-button:hover,
+:root.dark .fc-google-style .fc-next-button:hover {
+  background: #475569 !important;
+  color: #ffffff !important;
+}
+
+:root.dark .fc-google-style .fc-today-button:disabled {
+  background: #1e293b !important;
+  color: #64748b !important;
+}
+
+/* 日曆深色主題 */
+:root.dark .fc-google-style {
+  --fc-border-color: #334155;
+  --fc-page-bg-color: #0f172a;
+  --fc-neutral-bg-color: #1e293b;
+  --fc-list-event-hover-bg-color: #334155;
+}
+
+:root.dark .fc-google-style .fc-daygrid-day {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+:root.dark .fc-google-style .fc-day-today {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+:root.dark .fc-google-style .fc-daygrid-day-number,
+:root.dark .fc-google-style .fc-col-header-cell-cushion {
+  color: #cbd5e1 !important;
+}
+
+:root.dark .fc-google-style .fc-daygrid-weekday-label {
+  color: #94a3b8 !important;
+}
+
+:root.dark .fc-google-style .fc-daygrid-lunar-text {
+  color: #64748b !important;
+}
+
+/* 視圖切換按鈕深色 */
+:root.dark .fc-google-style .fc-button-group .fc-button {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+
+:root.dark .fc-google-style .fc-button-group .fc-button:hover {
+  background: #475569 !important;
+}
+
+:root.dark .fc-google-style .fc-button-group .fc-button-active {
+  background: rgba(59, 130, 246, 0.25) !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+/* 迷你月曆深色 */
+:root.dark .bg-white {
+  background: #1e293b !important;
+}
+
+:root.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+:root.dark .text-gray-900 {
+  color: #f1f5f9 !important;
+}
+
+:root.dark .text-gray-800 {
+  color: #e2e8f0 !important;
+}
+
+:root.dark .text-gray-700,
+:root.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+:root.dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+:root.dark .hover\:bg-gray-100:hover {
+  background: #334155 !important;
+}
+
+:root.dark .hover\:bg-gray-50:hover {
+  background: #1e293b !important;
+}
+
+:root.dark .bg-gray-100 {
+  background: #334155 !important;
+}
+
+:root.dark .bg-gray-50 {
+  background: #1e293b !important;
+}
+
+/* 彈窗深色 */
+:root.dark .custom-more-popover,
+:root.dark .event-detail-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* 輸入框深色 */
+:root.dark input {
+  color: #f1f5f9 !important;
+  background: #334155 !important;
+}
+
+:root.dark input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* 搜尋框深色 */
+:root.dark .focus-within\:bg-white:focus-within {
+  background: #334155 !important;
+}
+
+/* 滾動條深色 */
+:root.dark .fc-google-style .fc-scroller::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+:root.dark .fc-google-style .fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* 列表視圖深色 */
+:root.dark .fc-google-style .fc-list-day-cushion {
+  background: #334155 !important;
+}
+
+:root.dark .fc-google-style .fc-list-event:hover td {
+  background: #334155 !important;
+}
+
+/* 週/日視圖時間軸深色 */
+:root.dark .fc-google-style .fc-timegrid-slot-label {
+  color: #94a3b8 !important;
+}
+
+:root.dark .fc-google-style .fc-timegrid-axis-cushion {
+  color: #94a3b8 !important;
+}
+
+/* 事件卡片深色 */
+:root.dark .fc-google-style .fc-daygrid-event {
+  border-color: transparent !important;
+}
+
+/* 迷你月曆今日深色 */
+:root.dark .mini-calendar-today::after {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+/* 深色模式下保持事件顏色鮮明 */
+:root.dark .event-chip {
+  opacity: 0.95;
+}
+
+/* ===== 快捷鍵提示樣式 ===== */
+kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  box-shadow: 0 1px 0 #d1d5db;
+}
+
+@media (prefers-color-scheme: dark) {
+  kbd {
+    background: #374151;
+    border-color: #4b5563;
+    color: #e5e7eb;
+    box-shadow: 0 1px 0 #4b5563;
+  }
+}
+
+/* ===== 自訂滾動條 ===== */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+@media (prefers-color-scheme: dark) {
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #4b5563;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+}

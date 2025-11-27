@@ -78,9 +78,9 @@ export function MiniMonthCalendar({
             <button
               key={day.toISOString()}
               type="button"
-              className={`mx-auto w-9 h-9 rounded-full flex items-center justify-center transition-colors
+              className={`mx-auto w-9 h-9 rounded-full flex items-center justify-center transition-colors relative
                 ${isSelected ? 'bg-blue-600 text-white font-semibold shadow-sm' : ''}
-                ${!isSelected && isToday ? 'text-blue-600 font-semibold' : ''}
+                ${!isSelected && isToday ? 'mini-calendar-today' : ''}
                 ${!isSelected && !isToday ? 'text-gray-700' : ''}
                 ${muted && !isSelected ? 'text-gray-300' : ''}
                 hover:bg-blue-50`}

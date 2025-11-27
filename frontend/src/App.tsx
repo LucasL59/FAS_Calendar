@@ -3,17 +3,20 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Menu, X, Settings, Search, HelpCircle } from 'lucide-react';
+import { Menu, X, Settings, Search, HelpCircle, Clock, Sun, Moon, Monitor } from 'lucide-react';
 import { CalendarView } from './components/CalendarView';
 import { UserSelector } from './components/UserSelector';
 import { MiniMonthCalendar } from './components/MiniMonthCalendar';
 import { SyncStatusBar } from './components/SyncStatusBar';
 import { EventDetailModal } from './components/EventDetailModal';
+import { AvailabilityFinder } from './components/AvailabilityFinder';
+import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import {
   useCalendarEvents,
   useSyncStatus,
   useTriggerSync,
 } from './hooks/useCalendarData';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import type { CalendarEvent, DateRange, EventAnchorRect, UserInfo } from './types/calendar';
 import type { CalendarApi } from '@fullcalendar/core';
 import { TAIWAN_HOLIDAYS } from '@/data/holidays';
@@ -35,6 +38,16 @@ function App() {
   const [calendarTitle, setCalendarTitle] = useState(() =>
     initialCalendarDate.toLocaleString('zh-TW', { year: 'numeric', month: 'long' })
   );
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAvailabilityFinder, setShowAvailabilityFinder] = useState(false);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  
+  // 深色模式：'light' | 'dark' | 'system'
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
+    const saved = localStorage.getItem('fas-calendar:theme');
+    return (saved as 'light' | 'dark' | 'system') || 'system';
+  });
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const calendarApiRef = useRef<CalendarApi | null>(null);
   const [userColorOverrides, setUserColorOverrides] = useState<Record<string, string>>(() => {
     try {
@@ -145,6 +158,44 @@ function App() {
     }
   }, [selectedEvent, userColorMap]);
 
+  // 鍵盤快捷鍵
+  useKeyboardShortcuts({
+    calendarApi: calendarApiRef.current,
+    onViewChange: setCalendarView,
+    onToggleSidebar: () => setSidebarOpen((prev) => !prev),
+    onOpenAvailabilityFinder: () => setShowAvailabilityFinder(true),
+  });
+
+  // 深色模式切換
+  useEffect(() => {
+    const applyTheme = (mode: 'light' | 'dark' | 'system') => {
+      const root = document.documentElement;
+      
+      if (mode === 'system') {
+        // 跟隨系統
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.classList.toggle('dark', prefersDark);
+      } else {
+        root.classList.toggle('dark', mode === 'dark');
+      }
+      
+      localStorage.setItem('fas-calendar:theme', mode);
+    };
+    
+    applyTheme(themeMode);
+    
+    // 監聽系統主題變化
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (themeMode === 'system') {
+        applyTheme('system');
+      }
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [themeMode]);
+
   const sidebarHolidays = useMemo<CalendarEvent[]>(() => {
     const monthStart = new Date(viewAnchorDate.getFullYear(), viewAnchorDate.getMonth(), 1);
     const monthEnd = new Date(viewAnchorDate.getFullYear(), viewAnchorDate.getMonth() + 1, 0);
@@ -153,6 +204,34 @@ function App() {
       return date >= monthStart && date <= monthEnd;
     });
   }, [viewAnchorDate]);
+
+  // 搜尋篩選邏輯
+  const filteredCalendars = useMemo(() => {
+    if (!calendarData?.calendars || !searchTerm.trim()) {
+      return calendarData?.calendars || {};
+    }
+    const term = searchTerm.toLowerCase().trim();
+    const filtered: Record<string, CalendarEvent[]> = {};
+    
+    Object.entries(calendarData.calendars).forEach(([email, events]) => {
+      const user = users.find((u) => u.email === email);
+      const userName = user?.displayName?.toLowerCase() || '';
+      
+      const matchedEvents = events.filter((event) => {
+        // 搜尋標題、使用者名稱、地點
+        const matchSubject = event.subject.toLowerCase().includes(term);
+        const matchUser = userName.includes(term);
+        const matchLocation = event.location?.displayName?.toLowerCase().includes(term);
+        return matchSubject || matchUser || matchLocation;
+      });
+      
+      if (matchedEvents.length > 0) {
+        filtered[email] = matchedEvents;
+      }
+    });
+    
+    return filtered;
+  }, [calendarData?.calendars, searchTerm, users]);
 
   const sidebarContent = useMemo(() => (
     <>
@@ -301,10 +380,21 @@ function App() {
             <Search className="w-5 h-5 text-gray-500 group-focus-within:text-gray-700" />
             <input
               type="text"
-              placeholder="搜尋事件 (功能開發中)"
+              placeholder="搜尋事件、人員或地點..."
               className="bg-transparent border-none outline-none w-full text-gray-700 placeholder-gray-500 h-full"
-              disabled
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                aria-label="清除搜尋"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            )}
           </div>
           <div className="hidden lg:block">
             <SyncStatusBar
@@ -314,12 +404,66 @@ function App() {
               isSyncing={isSyncing}
             />
           </div>
-          <div className="hidden lg:block h-8 w-[1px] bg-gray-200" />
-          <button className="p-2 hover:bg-gray-100 rounded-full text-gray-600">
-            <HelpCircle className="w-6 h-6" />
+          <div className="hidden lg:block h-8 w-[1px] bg-gray-200 dark:bg-gray-700" />
+          
+          {/* 尋找空檔按鈕 */}
+          <button 
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm transition-colors"
+            onClick={() => setShowAvailabilityFinder(true)}
+            title="尋找共同空檔 (F)"
+          >
+            <Clock className="w-4 h-4" />
+            <span className="hidden md:inline">尋找空檔</span>
           </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full text-gray-600">
-            <Settings className="w-6 h-6" />
+          
+          {/* 主題切換 */}
+          <div className="relative">
+            <button 
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400"
+              onClick={() => setShowThemeMenu(!showThemeMenu)}
+              title="切換主題"
+            >
+              {themeMode === 'dark' ? <Moon className="w-5 h-5" /> : 
+               themeMode === 'light' ? <Sun className="w-5 h-5" /> : 
+               <Monitor className="w-5 h-5" />}
+            </button>
+            
+            {showThemeMenu && (
+              <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                <button
+                  className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${themeMode === 'light' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}
+                  onClick={() => { setThemeMode('light'); setShowThemeMenu(false); }}
+                >
+                  <Sun className="w-4 h-4" />
+                  淺色模式
+                </button>
+                <button
+                  className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${themeMode === 'dark' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}
+                  onClick={() => { setThemeMode('dark'); setShowThemeMenu(false); }}
+                >
+                  <Moon className="w-4 h-4" />
+                  深色模式
+                </button>
+                <button
+                  className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${themeMode === 'system' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}
+                  onClick={() => { setThemeMode('system'); setShowThemeMenu(false); }}
+                >
+                  <Monitor className="w-4 h-4" />
+                  跟隨系統
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <button 
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400"
+            onClick={() => setShowKeyboardHelp(true)}
+            title="鍵盤快捷鍵說明"
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
+          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400">
+            <Settings className="w-5 h-5" />
           </button>
           <div className="ml-2 w-8 h-8 bg-purple-600 rounded-full text-white flex items-center justify-center text-sm font-medium cursor-pointer hover:ring-4 ring-gray-100 transition-all">
             A
@@ -363,7 +507,7 @@ function App() {
           ) : (
             <div className="flex-1 min-h-0">
               <CalendarView
-                calendars={calendarData?.calendars || {}}
+                calendars={filteredCalendars}
                 users={users}
                 selectedUsers={selectedUsers}
                 holidays={TAIWAN_HOLIDAYS}
@@ -411,6 +555,22 @@ function App() {
           setSelectedEventColor(null);
           setEventAnchorRect(null);
         }}
+      />
+
+      {/* 空檔查詢 */}
+      {showAvailabilityFinder && (
+        <AvailabilityFinder
+          users={users}
+          selectedUsers={selectedUsers}
+          onClose={() => setShowAvailabilityFinder(false)}
+          userColorMap={userColorMap}
+        />
+      )}
+
+      {/* 快捷鍵說明 */}
+      <KeyboardShortcutsHelp
+        isOpen={showKeyboardHelp}
+        onClose={() => setShowKeyboardHelp(false)}
       />
     </div>
   );
