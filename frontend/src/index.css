@@ -147,7 +147,7 @@ body {
 }
 
 .fc-google-style .fc-daygrid-day-frame {
-  min-height: 72px;
+  min-height: var(--calendar-day-frame-min-height, 72px);
 }
 
 .fc-google-style .fc-daygrid-cell-content {

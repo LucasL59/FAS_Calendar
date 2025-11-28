@@ -116,6 +116,8 @@ export function CalendarView({
   const initialDateRef = useRef<Date>(initialDate ?? new Date());
   const [morePopover, setMorePopover] = useState<MorePopoverState | null>(null);
   const lastMorePopoverPosition = useRef<{ left: number; top: number } | null>(null);
+  const [calendarViewportHeight, setCalendarViewportHeight] = useState<number | null>(null);
+  const [monthWeekRowCount, setMonthWeekRowCount] = useState(6);
 
   // 建立使用者顏色對照表
   const userColorMap = useMemo(() => {
@@ -230,6 +232,13 @@ export function CalendarView({
   const handleDatesSet = useCallback((arg: DatesSetArg) => {
     const activeDate = calendarRef.current?.getApi().getDate();
     onDateRangeChange({ start: arg.start, end: arg.end }, activeDate ?? arg.start);
+
+    if (arg.view.type === 'dayGridMonth') {
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      const activeDays = Math.max(1, Math.round((arg.end.getTime() - arg.start.getTime()) / MS_PER_DAY));
+      const rows = Math.max(1, Math.round(activeDays / 7));
+      setMonthWeekRowCount(rows);
+    }
   }, [onDateRangeChange]);
 
   const openEventDetail = useCallback(
@@ -282,7 +291,7 @@ export function CalendarView({
       popover.style.setProperty('display', 'none', 'important');
       popover.setAttribute('aria-hidden', 'true');
     });
-  }, []);
+  }, [monthWeekRowCount]);
 
   const handleMoreLinkClick = useCallback((args: MoreLinkArg) => {
     const domArgs = args as MoreLinkArgWithSegs & { dayEl?: HTMLElement; el?: HTMLElement };
@@ -395,6 +404,63 @@ export function CalendarView({
     return () => container.removeEventListener('wheel', handleWheel as EventListenerOrEventListenerObject);
   }, []);
 
+  useEffect(() => {
+    const container = calendarContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const host = container.parentElement ?? container;
+    const clampHeight = (value: number) => Math.max(48, Math.min(value, 120));
+    const updateMetrics = (explicitHeight?: number) => {
+      const measuredHeight = explicitHeight ?? host.getBoundingClientRect().height ?? container.clientHeight;
+      if (!measuredHeight) {
+        return;
+      }
+      setCalendarViewportHeight(measuredHeight);
+      const chromeOffset = 64; // 扣掉週標籤與上下 padding
+      const rowCount = monthWeekRowCount || 6;
+      const rawHeight = (measuredHeight - chromeOffset) / rowCount;
+      const clampedHeight = clampHeight(rawHeight);
+      container.style.setProperty('--calendar-day-frame-min-height', `${Math.round(clampedHeight)}px`);
+    };
+
+    updateMetrics();
+
+    const root =
+      typeof globalThis !== 'undefined' && 'addEventListener' in globalThis
+        ? (globalThis as Window & typeof globalThis)
+        : null;
+    if (!root) {
+      return;
+    }
+
+    let resizeObserver: ResizeObserver | null = null;
+    let resizeHandler: (() => void) | null = null;
+
+    if ('ResizeObserver' in root && typeof root.ResizeObserver === 'function') {
+      resizeObserver = new root.ResizeObserver((entries) => {
+        const height = entries[0]?.contentRect?.height;
+        if (typeof height === 'number') {
+          updateMetrics(height);
+          return;
+        }
+        updateMetrics();
+      });
+      resizeObserver.observe(host);
+    } else {
+      resizeHandler = () => updateMetrics(host.getBoundingClientRect().height);
+      root.addEventListener('resize', resizeHandler);
+    }
+
+    return () => {
+      resizeObserver?.disconnect();
+      if (resizeHandler) {
+        root.removeEventListener('resize', resizeHandler);
+      }
+    };
+  }, []);
+
   // 外部要求聚焦到指定日期
   useEffect(() => {
     if (!focusDate) return;
@@ -431,7 +497,8 @@ export function CalendarView({
         }}
         locale="zh-tw"
         firstDay={0}
-        height="100%"
+        height={calendarViewportHeight ?? '100%'}
+        contentHeight={calendarViewportHeight ?? 'auto'}
         fixedWeekCount={false}
         expandRows={true}
         events={events}
