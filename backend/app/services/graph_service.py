@@ -4,13 +4,15 @@ Microsoft Graph API 服務
 """
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 from urllib.parse import quote
 
 import httpx
 from azure.identity.aio import ClientSecretCredential
 from loguru import logger
+from dateutil import parser
+from zoneinfo import ZoneInfo
 
 from ..config import Settings, get_settings
 from ..models import CalendarEvent, DateTimeInfo, Location, ShowAs, UserInfo
@@ -43,12 +45,13 @@ class GraphService:
         self._user_color_map: Dict[str, str] = {}
         self._access_token: Optional[str] = None
         self._token_expires: Optional[datetime] = None
+        self._timezone: ZoneInfo = self._settings.timezone_info
 
     async def _get_access_token(self) -> str:
         """取得 Access Token"""
         # 檢查 token 是否有效
         if self._access_token and self._token_expires:
-            if datetime.now() < self._token_expires - timedelta(minutes=5):
+            if datetime.now(timezone.utc) < self._token_expires - timedelta(minutes=5):
                 return self._access_token
 
         if not self._settings.is_azure_configured:
@@ -66,7 +69,7 @@ class GraphService:
         # 取得新 token
         token = await self._credential.get_token("https://graph.microsoft.com/.default")
         self._access_token = token.token
-        self._token_expires = datetime.fromtimestamp(token.expires_on)
+        self._token_expires = datetime.fromtimestamp(token.expires_on, tz=timezone.utc)
 
         return self._access_token
 
@@ -161,18 +164,15 @@ class GraphService:
                     start_info = event.get("start", {})
                     start_dt_str = start_info.get("dateTime", "")
                     if start_dt_str:
-                        # 移除可能的時區資訊，因為已經是台灣時間
-                        clean_start = start_dt_str.split("+")[0].split("Z")[0]
-                        start_dt = datetime.fromisoformat(clean_start)
+                        start_dt = self._parse_graph_datetime(start_dt_str, self._timezone)
                     else:
-                        start_dt = datetime.now()
+                        start_dt = datetime.now(self._timezone)
 
                     # 解析結束時間
                     end_info = event.get("end", {})
                     end_dt_str = end_info.get("dateTime", "")
                     if end_dt_str:
-                        clean_end = end_dt_str.split("+")[0].split("Z")[0]
-                        end_dt = datetime.fromisoformat(clean_end)
+                        end_dt = self._parse_graph_datetime(end_dt_str, self._timezone)
                     else:
                         end_dt = start_dt + timedelta(hours=1)
 
@@ -269,6 +269,15 @@ class GraphService:
                 users.append(result)
 
         return users
+
+    def _parse_graph_datetime(self, value: str, target_tz: ZoneInfo) -> datetime:
+        """解析 Graph API 回傳的日期字串並套用指定時區"""
+        # Graph API 可能返回沒有時區資訊的字串（依 Prefer header），但也有帶 Z 或 ±offset 的情況
+        from dateutil import parser
+        parsed = parser.isoparse(value)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=target_tz)
+        return parsed.astimezone(target_tz)
 
     async def close(self):
         """關閉連線"""

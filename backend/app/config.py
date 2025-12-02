@@ -5,6 +5,7 @@
 
 from functools import lru_cache
 from typing import List, Optional
+from zoneinfo import ZoneInfo
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -37,6 +38,9 @@ class Settings(BaseSettings):
     port: int = 8000
     debug: bool = True
 
+    # 時區設定
+    timezone: str = "Asia/Taipei"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -65,6 +69,16 @@ class Settings(BaseSettings):
             self.azure_client_id,
             self.azure_client_secret,
         ])
+
+    @property
+    def timezone_info(self) -> ZoneInfo:
+        """取得系統預設時區"""
+        tz_name = self.timezone or "Asia/Taipei"
+        try:
+            return ZoneInfo(tz_name)
+        except Exception:
+            # 發生錯誤時回退至台灣時區，避免中斷服務
+            return ZoneInfo("Asia/Taipei")
 
 
 @lru_cache

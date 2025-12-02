@@ -153,9 +153,19 @@ async def get_availability(
     - **users**: 使用者信箱 (逗號分隔)，留空則查詢所有人
     """
     try:
-        # 移除 timezone 資訊以確保比較一致
-        start_naive = start.replace(tzinfo=None) if start.tzinfo else start
-        end_naive = end.replace(tzinfo=None) if end.tzinfo else end
+        tz = settings.timezone_info
+
+        def to_local_naive(dt: datetime) -> datetime:
+            """將時間轉為設定時區後去除 tzinfo，確保使用台灣時間比較"""
+            if dt.tzinfo is None:
+                localized = dt.replace(tzinfo=tz)
+            else:
+                localized = dt.astimezone(tz)
+            return localized.replace(tzinfo=None)
+
+        # 轉為台灣時區後移除 timezone 資訊，以確保比較一致
+        start_naive = to_local_naive(start)
+        end_naive = to_local_naive(end)
         
         # 決定要查詢的使用者
         if users:
