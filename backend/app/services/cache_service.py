@@ -19,6 +19,7 @@ class CacheService:
     def __init__(self, settings: Optional[Settings] = None):
         """初始化快取服務"""
         self._settings = settings or get_settings()
+        self._timezone = self._settings.timezone_info
 
         # TTL 快取，預設 15 分鐘過期
         cache_ttl = self._settings.cache_duration_minutes * 60
@@ -45,7 +46,7 @@ class CacheService:
             self._calendar_cache[cache_key] = events
             logger.debug(f"快取 {email} 的 {len(events)} 個事件")
 
-        self._last_sync = datetime.now()
+        self._last_sync = datetime.now(self._timezone)
         logger.info(f"已快取 {len(calendars)} 位使用者的行事曆")
 
     def get_calendar(self, email: str) -> Optional[List[CalendarEvent]]:
@@ -113,7 +114,7 @@ class CacheService:
         """取得下次同步時間"""
         if self._last_sync is None:
             return None
-        return self._last_sync + timedelta(minutes=self._settings.sync_interval_minutes)
+        return (self._last_sync + timedelta(minutes=self._settings.sync_interval_minutes)).astimezone(self._timezone)
 
     @property
     def is_syncing(self) -> bool:
@@ -156,7 +157,8 @@ class CacheService:
 
         # 檢查是否超過快取時間
         cache_duration = timedelta(minutes=self._settings.cache_duration_minutes)
-        return datetime.now() - self._last_sync < cache_duration
+        now = datetime.now(self._timezone)
+        return now - self._last_sync < cache_duration
 
     def clear(self) -> None:
         """清除所有快取"""
