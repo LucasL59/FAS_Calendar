@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500&family=Noto+Sans+TC:wght@400;500&display=swap');
+/* 使用微軟正黑體作為主要字型 */
 
 @tailwind base;
 @tailwind components;
@@ -20,7 +20,7 @@ body {
 }
 
 body {
-  font-family: 'Google Sans', 'Roboto', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Microsoft JhengHei', '微軟正黑體', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -252,7 +252,7 @@ body {
 }
 
 .fc-google-style .fc-event-title {
-  font-weight: 500;
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -301,14 +301,14 @@ body {
 
 .event-chip-user {
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 500;
   opacity: 0.9;
   white-space: nowrap;
 }
 
 .event-chip-title {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -665,7 +665,7 @@ body {
 }
 
 .fc-google-style .fc-timegrid-event .fc-event-title {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.8125rem;
   line-height: 1.3;
 }

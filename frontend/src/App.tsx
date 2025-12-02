@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Menu, X, Settings, Search, HelpCircle, Clock, Sun, Moon, Monitor, Plus } from 'lucide-react';
+import { Menu, X, Settings, Search, HelpCircle, Clock, Sun, Moon, Monitor, Plus, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CalendarView } from './components/CalendarView';
 import { UserSelector } from './components/UserSelector';
 import { MiniMonthCalendar } from './components/MiniMonthCalendar';
@@ -56,6 +56,9 @@ function App() {
     return (saved as 'light' | 'dark' | 'system') || 'system';
   });
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [showViewMenu, setShowViewMenu] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const calendarApiRef = useRef<CalendarApi | null>(null);
   const [userColorOverrides, setUserColorOverrides] = useState<Record<string, string>>(() => {
     try {
@@ -339,111 +342,144 @@ function App() {
   return (
     <div className="h-screen w-full bg-gray-50 text-gray-900 flex flex-col font-google-sans">
       {/* Google 風格頂部導航列 */}
-      <header className="h-16 px-4 md:px-8 flex items-center justify-between border-b border-gray-200 bg-white z-20 flex-shrink-0 shadow-sm">
-        <div className="flex items-center gap-3 min-w-[230px]">
+      <header className="h-14 px-2 sm:px-4 flex items-center border-b border-gray-200 bg-white z-20 flex-shrink-0">
+        {/* 左側 Logo 區 - 固定寬度對應側邊欄 */}
+        <div className="flex items-center gap-2 flex-shrink-0 w-[60px] sm:w-[200px] lg:w-[256px]">
+          {/* 漢堡選單 */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-3 hover:bg-gray-100 rounded-full transition-colors focus:outline-none"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors focus:outline-none"
             aria-label="主選單"
           >
             <Menu className="w-5 h-5 text-gray-600" />
           </button>
-          <div className="flex items-center gap-2 select-none">
-            {/* Google Calendar Icon 模擬 */}
-            <div className="w-10 h-10 bg-white border border-gray-200 rounded-lg flex flex-col items-center justify-center shadow-sm overflow-hidden relative">
-                <div className="w-full h-3 bg-red-500 absolute top-0"></div>
-                <span className="text-xs font-bold text-gray-600 mt-2">31</span>
+          
+          {/* Logo - FAS 團隊日曆垂直排列 */}
+          <div className="hidden sm:flex items-center gap-2 select-none">
+            <div className="w-9 h-9 bg-white border border-gray-200 rounded-lg flex flex-col items-center justify-center overflow-hidden relative shadow-sm">
+              <div className="w-full h-2.5 bg-red-500 absolute top-0"></div>
+              <span className="text-[11px] font-bold text-gray-600 mt-1.5">{new Date().getDate()}</span>
             </div>
-            <span className="text-[22px] text-gray-600 leading-tight tracking-tight pl-1">
-              Calendar <span className="text-gray-400 text-sm block -mt-1">Team Edition</span>
-            </span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-semibold text-gray-700">FAS</span>
+              <span className="text-xs text-gray-400">團隊日曆</span>
+            </div>
           </div>
         </div>
-
-        {/* 中間工具列 */}
-        <div className="flex-1 flex items-center justify-center gap-3 px-4 min-w-0 flex-wrap xl:flex-nowrap">
-          <div className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-200 shadow-sm bg-white">
-            <button
-              onClick={() => calendarApiRef.current?.prev()}
-              className="p-2 rounded-full hover:bg-gray-100"
-              aria-label="上一頁"
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 6l-6 6 6 6" />
-              </svg>
-            </button>
-            <button
-              onClick={() => calendarApiRef.current?.next()}
-              className="p-2 rounded-full hover:bg-gray-100"
-              aria-label="下一頁"
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-            <button
-              onClick={() => calendarApiRef.current?.today()}
-              className="px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium hover:bg-gray-50"
-            >
-              今天
-            </button>
-          </div>
-          <div className="text-2xl font-medium text-gray-700 min-w-[180px] text-center">
+        
+        {/* 中間導航區 - 今天、箭頭、月份標題 */}
+        <div className="flex items-center gap-1 flex-1">
+          {/* 今天按鈕 - 圓角 */}
+          <button
+            onClick={() => calendarApiRef.current?.today()}
+            className="px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-colors border border-gray-300"
+          >
+            今天
+          </button>
+          
+          {/* 前後導航箭頭 */}
+          <button
+            onClick={() => calendarApiRef.current?.prev()}
+            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="上一頁"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <button
+            onClick={() => calendarApiRef.current?.next()}
+            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="下一頁"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+          
+          {/* 月份標題 */}
+          <div className="text-lg sm:text-xl font-normal text-gray-800 ml-3 whitespace-nowrap">
             {calendarTitle}
           </div>
-          <div className="flex rounded-full border border-gray-200 overflow-hidden">
-            {([
-              { key: 'dayGridMonth', label: '月' },
-              { key: 'timeGridWeek', label: '週' },
-              { key: 'timeGridDay', label: '日' },
-              { key: 'listWeek', label: '列表' },
-            ] as const).map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setCalendarView(key)}
-                className={`px-4 py-1.5 text-sm ${
-                  calendarView === key
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* 右側搜尋＋工具區 */}
-        <div className="flex items-center gap-3 min-w-[260px] justify-end flex-wrap lg:flex-nowrap">
-          <div className="flex items-center gap-3 bg-gray-100 rounded-full px-4 py-1.5 w-full md:w-72 h-11 focus-within:bg-white focus-within:shadow-md transition-all group order-1 md:order-none">
-            <Search className="w-5 h-5 text-gray-500 group-focus-within:text-gray-700" />
-            <input
-              type="text"
-              placeholder="搜尋事件、人員或地點..."
-              className="bg-transparent border-none outline-none w-full text-gray-700 placeholder-gray-500 h-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
+        {/* 右側工具區 */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* 同步狀態 - 垂直排列縮小 */}
+          <div className="hidden md:flex flex-col items-end text-[10px] text-gray-400 leading-tight mr-1">
+            <span>{syncStatus?.lastSync ? new Date(syncStatus.lastSync).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--'}</span>
+            <span>{syncStatus?.totalEvents ?? 0}事件/{syncStatus?.totalUsers ?? 0}人</span>
+          </div>
+          
+          {/* 搜尋框 - 可展開收合 */}
+          <div className="relative">
+            {isSearchExpanded ? (
+              <div className="flex items-center bg-gray-100 rounded-full pl-3 pr-2 h-10 w-48 sm:w-56 focus-within:bg-white focus-within:shadow-md focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="搜尋"
+                  className="bg-transparent border-none outline-none w-full text-sm text-gray-700 placeholder-gray-500 ml-2"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onBlur={() => {
+                    if (!searchTerm) setIsSearchExpanded(false);
+                  }}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => { setSearchTerm(''); setIsSearchExpanded(false); }}
+                  className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                  aria-label="關閉搜尋"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+            ) : (
               <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                className="p-1 hover:bg-gray-200 rounded-full transition-colors"
-                aria-label="清除搜尋"
+                onClick={() => {
+                  setIsSearchExpanded(true);
+                  setTimeout(() => searchInputRef.current?.focus(), 50);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="搜尋"
               >
-                <X className="w-4 h-4 text-gray-500" />
+                <Search className="w-5 h-5 text-gray-600" />
               </button>
             )}
           </div>
-          <div className="hidden lg:block">
-            <SyncStatusBar
-              syncStatus={syncStatus}
-              isLoading={isLoadingSyncStatus}
-              onSync={handleSync}
-              isSyncing={isSyncing}
-            />
+          
+          {/* 視圖切換下拉選單 - 圓角 */}
+          <div className="relative">
+            <button
+              onClick={() => setShowViewMenu(!showViewMenu)}
+              className="flex items-center gap-1 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full border border-gray-300 transition-colors"
+            >
+              {{ dayGridMonth: '月', timeGridWeek: '週', timeGridDay: '日', listWeek: '列表' }[calendarView]}
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {showViewMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowViewMenu(false)} />
+                <div className="absolute right-0 mt-1 w-28 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
+                  {([
+                    { key: 'dayGridMonth', label: '月' },
+                    { key: 'timeGridWeek', label: '週' },
+                    { key: 'timeGridDay', label: '日' },
+                    { key: 'listWeek', label: '列表' },
+                  ] as const).map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => { setCalendarView(key); setShowViewMenu(false); }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 ${
+                        calendarView === key ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-          <div className="hidden lg:block h-8 w-[1px] bg-gray-200 dark:bg-gray-700" />
           
           {/* 建立事件按鈕 */}
           <button 

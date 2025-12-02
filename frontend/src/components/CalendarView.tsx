@@ -486,6 +486,9 @@ export function CalendarView({
     return () => container.removeEventListener('wheel', handleWheel as EventListenerOrEventListenerObject);
   }, []);
 
+  // 追蹤上次高度值以避免不必要的重新渲染
+  const lastHeightRef = useRef<number>(0);
+
   useEffect(() => {
     const container = calendarContainerRef.current;
     if (!container) {
@@ -499,7 +502,14 @@ export function CalendarView({
       if (!measuredHeight) {
         return;
       }
-      setCalendarViewportHeight(measuredHeight);
+      
+      // 只有當高度變化超過 10px 時才更新 state，避免滾動時的微小變化觸發重新渲染
+      const heightDiff = Math.abs(measuredHeight - lastHeightRef.current);
+      if (heightDiff > 10 || lastHeightRef.current === 0) {
+        lastHeightRef.current = measuredHeight;
+        setCalendarViewportHeight(measuredHeight);
+      }
+      
       const chromeOffset = 64; // 扣掉週標籤與上下 padding
       const rowCount = monthWeekRowCount || 6;
       const rawHeight = (measuredHeight - chromeOffset) / rowCount;
@@ -599,12 +609,14 @@ export function CalendarView({
             hour12: true,
             meridiem: 'short'
         }}
-        slotMinTime="07:00:00"
-        slotMaxTime="22:00:00"
+        slotMinTime="00:00:00"
+        slotMaxTime="24:00:00"
+        scrollTime="08:00:00"
+        scrollTimeReset={false}
         allDaySlot={true}
         allDayText="全天"
         nowIndicator={true}
-        dayMaxEvents={view === 'dayGridMonth' ? 2 : false}
+        dayMaxEvents={view === 'dayGridMonth' ? true : false}
         moreLinkClick={handleMoreLinkClick}
         moreLinkClassNames="text-[11px]"
         moreLinkContent={(args) => `+${args.num} 更多`}
