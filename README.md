@@ -29,6 +29,7 @@
 - 🏮 **農曆日期（可切換）**：日期右側顯示農曆與節氣，並在「其他日曆」區新增「農曆日期」開關，預設開啟、取消勾選即可隱藏。
 - 🔵 **今日標記重新設計**：藍色圓點僅包覆陽曆日期數字，農曆與節氣保持在外側，視覺一致。
 - ➕ **建立事件捷徑**：標頭新增「建立」按鈕，點擊即開啟 Outlook Web `deeplink/compose` 建立事件，與原有「尋找空檔」並列。
+- ✨ **+更多 視窗穩定化**：自訂 more popover 的定位回呼改為 memoized handler，避免 FullCalendar re-render 時觸發重複動畫造成彈跳/抖動，維持既有過場效果但體驗更平順。
 - 🛡️ **Service Worker 改進**：濾除 `chrome-extension://` 等非 HTTP 請求，避免快取錯誤訊息干擾開發。
 - 📘 **值班紀錄可視化**：後端加入 `oncall_schedule.json` 管理各月份值班表，`GET /api/calendars/events` 與 `GET /api/calendars/oncall` 會回傳對應資料；前端「其他日曆」區可切換值班顯示並以同仁色碼加上 🛡️ 圖示呈現。
 

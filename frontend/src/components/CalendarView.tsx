@@ -126,6 +126,9 @@ export function CalendarView({
   }, [initialDate]);
   const [morePopover, setMorePopover] = useState<MorePopoverState | null>(null);
   const lastMorePopoverPosition = useRef<{ left: number; top: number } | null>(null);
+  const handlePopoverSettled = useCallback((pos: { left: number; top: number }) => {
+    lastMorePopoverPosition.current = pos;
+  }, []);
   const [calendarViewportHeight, setCalendarViewportHeight] = useState<number | null>(null);
   const [monthWeekRowCount, setMonthWeekRowCount] = useState(6);
 
@@ -662,9 +665,7 @@ export function CalendarView({
           data={morePopover}
           onClose={() => setMorePopover(null)}
           onEventSelect={(eventApi, anchor) => openEventDetail(eventApi, anchor)}
-          onPositionSettled={(pos) => {
-            lastMorePopoverPosition.current = pos;
-          }}
+          onPositionSettled={handlePopoverSettled}
         />
       )}
     </div>
