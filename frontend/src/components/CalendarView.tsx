@@ -118,6 +118,12 @@ export function CalendarView({
   const calendarRef = useRef<FullCalendar>(null);
   const calendarContainerRef = useRef<HTMLDivElement>(null);
   const initialDateRef = useRef<Date>(initialDate ?? new Date());
+
+  useEffect(() => {
+    if (initialDate) {
+      initialDateRef.current = initialDate;
+    }
+  }, [initialDate]);
   const [morePopover, setMorePopover] = useState<MorePopoverState | null>(null);
   const lastMorePopoverPosition = useRef<{ left: number; top: number } | null>(null);
   const [calendarViewportHeight, setCalendarViewportHeight] = useState<number | null>(null);
@@ -288,8 +294,13 @@ export function CalendarView({
   ]);
 
   const handleDatesSet = useCallback((arg: DatesSetArg) => {
-    const activeDate = calendarRef.current?.getApi().getDate();
-    onDateRangeChange({ start: arg.start, end: arg.end }, activeDate ?? arg.start);
+    const apiDate = calendarRef.current?.getApi().getDate();
+    const rangeMidpoint = new Date((arg.start.getTime() + arg.end.getTime()) / 2);
+    const fallbackDate = initialDateRef.current ?? rangeMidpoint;
+    const activeDate = apiDate && apiDate.getTime() !== arg.start.getTime()
+      ? apiDate
+      : fallbackDate;
+    onDateRangeChange({ start: arg.start, end: arg.end }, activeDate);
 
     if (arg.view.type === 'dayGridMonth') {
       const MS_PER_DAY = 24 * 60 * 60 * 1000;

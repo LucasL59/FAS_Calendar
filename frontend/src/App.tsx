@@ -144,7 +144,8 @@ function App() {
 
   // 事件處理
   const handleDateRangeChange = useCallback((range: DateRange, activeDate?: Date) => {
-    const newAnchor = activeDate ?? range.start;
+    const rangeMidpoint = new Date((range.start.getTime() + range.end.getTime()) / 2);
+    const newAnchor = activeDate ?? rangeMidpoint;
     setViewAnchorDate((prev) => {
       if (prev.getTime() === newAnchor.getTime()) {
         return prev;
@@ -566,7 +567,7 @@ function App() {
                 oncallEvents={oncallEvents}
                 showOncall={showOncall}
                 showLunar={showLunar}
-                initialDate={initialCalendarDate}
+                initialDate={viewAnchorDate}
                 focusDate={focusDate ?? undefined}
                 view={calendarView}
                 colorOverrides={userColorOverrides}
@@ -575,6 +576,9 @@ function App() {
                 onEventClick={handleEventClick}
                 onCalendarReady={(api) => {
                   calendarApiRef.current = api;
+                  const activeDate = api.getDate();
+                  setViewAnchorDate(activeDate);
+                  setFocusDate(activeDate);
                   updateCalendarTitle();
                 }}
               />

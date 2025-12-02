@@ -73,13 +73,21 @@ export function MiniMonthCalendar({
           const isToday = isSameDay(day, today);
           const isSelected = isSameDay(day, selectedDate);
           const muted = !isSameMonth(day, anchorDate);
+          const isFirstDay = day.getDate() === 1;
+          const highlightClass = isSelected
+            ? isToday
+              ? 'mini-calendar-selected'
+              : isFirstDay
+                ? 'mini-calendar-anchor'
+                : 'mini-calendar-selected'
+            : '';
 
           return (
             <button
               key={day.toISOString()}
               type="button"
               className={`mx-auto w-9 h-9 rounded-full flex items-center justify-center transition-colors relative
-                ${isSelected ? 'bg-blue-600 text-white font-semibold shadow-sm' : ''}
+                ${highlightClass}
                 ${!isSelected && isToday ? 'mini-calendar-today' : ''}
                 ${!isSelected && !isToday ? 'text-gray-700' : ''}
                 ${muted && !isSelected ? 'text-gray-300' : ''}
