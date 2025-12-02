@@ -41,6 +41,7 @@ export interface CalendarEventResponse {
   lastSync: string | null;
   calendars: Record<string, CalendarEvent[]>;
   users: UserInfo[];
+  oncallEvents?: CalendarEvent[];
 }
 
 // 可用時段
@@ -86,6 +87,7 @@ export interface FullCalendarEvent {
     originalSubject: string;
     isHoliday?: boolean;
     isPast?: boolean;
+    isOncall?: boolean;
   };
 }
 

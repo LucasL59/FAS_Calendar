@@ -74,6 +74,7 @@ class CalendarEventResponse(BaseModel):
     last_sync: Optional[datetime] = Field(default=None, alias="lastSync")
     calendars: Dict[str, List[CalendarEvent]] = Field(default_factory=dict)
     users: List[UserInfo] = Field(default_factory=list)
+    oncall_events: List[CalendarEvent] = Field(default_factory=list, alias="oncallEvents")
 
     class Config:
         populate_by_name = True

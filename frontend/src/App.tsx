@@ -45,6 +45,10 @@ function App() {
     const saved = localStorage.getItem('fas-calendar:show-lunar');
     return saved !== 'false'; // 預設開啟
   });
+  const [showOncall, setShowOncall] = useState(() => {
+    const saved = localStorage.getItem('fas-calendar:show-oncall');
+    return saved !== 'false';
+  });
   
   // 深色模式：'light' | 'dark' | 'system'
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
@@ -80,6 +84,10 @@ function App() {
     localStorage.setItem('fas-calendar:show-lunar', String(showLunar));
   }, [showLunar]);
 
+  useEffect(() => {
+    localStorage.setItem('fas-calendar:show-oncall', String(showOncall));
+  }, [showOncall]);
+
   const updateCalendarTitle = useCallback(() => {
     const api = calendarApiRef.current;
     if (api) {
@@ -98,6 +106,7 @@ function App() {
   const { mutate: triggerSync, isPending: isSyncing } = useTriggerSync();
 
   const users: UserInfo[] = calendarData?.users || [];
+  const oncallEvents = calendarData?.oncallEvents ?? [];
 
   const userColorMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -153,6 +162,7 @@ function App() {
   }, [userColorMap]);
   const handleSync = useCallback(() => triggerSync(), [triggerSync]);
   const toggleHolidays = useCallback(() => setShowHolidays(prev => !prev), []);
+  const toggleOncall = useCallback(() => setShowOncall(prev => !prev), []);
   const handleUserColorChange = useCallback((email: string, color: string) => {
     setUserColorOverrides((prev) => ({
       ...prev,
@@ -213,6 +223,17 @@ function App() {
     });
   }, [viewAnchorDate]);
 
+  const sidebarOncallEvents = useMemo<CalendarEvent[]>(() => {
+    if (!oncallEvents.length) return [];
+    const monthStart = new Date(viewAnchorDate.getFullYear(), viewAnchorDate.getMonth(), 1);
+    const monthEnd = new Date(viewAnchorDate.getFullYear(), viewAnchorDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    return oncallEvents.filter((event) => {
+      const start = new Date(event.start.dateTime);
+      const end = new Date(event.end.dateTime);
+      return end >= monthStart && start <= monthEnd;
+    });
+  }, [oncallEvents, viewAnchorDate]);
+
   // 搜尋篩選邏輯
   const filteredCalendars = useMemo(() => {
     if (!calendarData?.calendars || !searchTerm.trim()) {
@@ -268,6 +289,9 @@ function App() {
           onToggleHolidays={toggleHolidays}
           showLunar={showLunar}
           onToggleLunar={() => setShowLunar(prev => !prev)}
+          showOncall={showOncall}
+          onToggleOncall={toggleOncall}
+          oncallEvents={sidebarOncallEvents}
           userColorOverrides={userColorOverrides}
           onUserColorChange={handleUserColorChange}
         />
@@ -281,6 +305,9 @@ function App() {
     showHolidays,
     toggleHolidays,
     showLunar,
+    showOncall,
+    toggleOncall,
+    sidebarOncallEvents,
     viewAnchorDate,
     focusDate,
     userColorOverrides,
@@ -536,6 +563,8 @@ function App() {
                 selectedUsers={selectedUsers}
                 holidays={TAIWAN_HOLIDAYS}
                 showHolidays={showHolidays}
+                oncallEvents={oncallEvents}
+                showOncall={showOncall}
                 showLunar={showLunar}
                 initialDate={initialCalendarDate}
                 focusDate={focusDate ?? undefined}

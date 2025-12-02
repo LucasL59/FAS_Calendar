@@ -85,6 +85,8 @@ interface CalendarViewProps {
   holidays: CalendarEvent[];
   showHolidays: boolean;
   showLunar?: boolean;
+  oncallEvents?: CalendarEvent[];
+  showOncall?: boolean;
   initialDate?: Date;
   focusDate?: Date;
   view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
@@ -101,6 +103,8 @@ export function CalendarView({
   selectedUsers,
   holidays,
   showHolidays,
+  oncallEvents = [],
+  showOncall = true,
   showLunar = true,
   initialDate,
   focusDate,
@@ -226,8 +230,62 @@ export function CalendarView({
       });
     }
 
+    // 3. 加入值班事件 (可切換)
+    if (showOncall && oncallEvents.length > 0) {
+      oncallEvents.forEach((event) => {
+        const eventEnd = new Date(event.end.dateTime).getTime();
+        const isPast = eventEnd < now;
+        const baseColor = userColorMap[event.userEmail] || '#4f46e5';
+        const backgroundColor = isPast ? lightenColor(baseColor, 0.88) : baseColor;
+        const borderColor = isPast ? lightenColor(baseColor, 0.92) : baseColor;
+        const textColor = isPast
+          ? 'rgba(71, 85, 105, 0.75)'
+          : getAdaptiveTextColor(backgroundColor, true);
+        const classNames = ['fc-event-rounded', 'fc-event-oncall'];
+        if (isPast) {
+          classNames.push('fc-event-past');
+        }
+        const eventId = `${event.userEmail}-${event.id}`;
+        if (selectedEventId && selectedEventId === eventId) {
+          classNames.push('fc-event-selected');
+        }
+
+        allEvents.push({
+          id: eventId,
+          title: event.subject,
+          start: new Date(event.start.dateTime),
+          end: new Date(event.end.dateTime),
+          allDay: true,
+          backgroundColor,
+          borderColor,
+          textColor,
+          extendedProps: {
+            userEmail: event.userEmail,
+            userName: event.userName,
+            showAs: event.showAs,
+            location: event.location?.displayName,
+            originalSubject: event.subject,
+            isHoliday: false,
+            isPast,
+            isOncall: true,
+          },
+          classNames,
+        });
+      });
+    }
+
     return allEvents;
-  }, [calendars, users, selectedUsers, userColorMap, holidays, showHolidays, selectedEventId]);
+  }, [
+    calendars,
+    users,
+    selectedUsers,
+    userColorMap,
+    holidays,
+    showHolidays,
+    oncallEvents,
+    showOncall,
+    selectedEventId,
+  ]);
 
   const handleDatesSet = useCallback((arg: DatesSetArg) => {
     const activeDate = calendarRef.current?.getApi().getDate();
@@ -245,15 +303,25 @@ export function CalendarView({
     (eventApi: EventApi, anchor?: EventAnchorRect) => {
       if (!onEventClick) return;
       const userEmail = eventApi.extendedProps?.userEmail as string | undefined;
-      if (!userEmail) return;
-      const originalEvent = calendars[userEmail]?.find(
-        (e) => `${userEmail}-${e.id}` === eventApi.id
-      );
+
+      let originalEvent: CalendarEvent | undefined;
+      if (userEmail) {
+        originalEvent = calendars[userEmail]?.find(
+          (e) => `${userEmail}-${e.id}` === eventApi.id
+        );
+      }
+
+      if (!originalEvent && eventApi.extendedProps?.isOncall) {
+        originalEvent = oncallEvents.find(
+          (event) => `${event.userEmail}-${event.id}` === eventApi.id
+        );
+      }
+
       if (originalEvent) {
         onEventClick(originalEvent, anchor);
       }
     },
-    [calendars, onEventClick]
+    [calendars, onEventClick, oncallEvents]
   );
 
   const handleEventClick = useCallback(
@@ -531,7 +599,7 @@ export function CalendarView({
         dayHeaderFormat={undefined}
         dayCellContent={renderDayCell}
         eventContent={(arg) => {
-          const { userName } = arg.event.extendedProps;
+          const { userName, isOncall } = arg.event.extendedProps;
           const eventColor = arg.event.backgroundColor || '#1a73e8';
           const textColor = arg.event.textColor || '#ffffff';
           const isMonthView = arg.view.type === 'dayGridMonth';
@@ -565,6 +633,11 @@ export function CalendarView({
                   </span>
                 )}
                 <span className="event-chip-title">
+                  {isOncall && (
+                    <span className="inline-flex items-center justify-center text-[11px] mr-1" title="值班">
+                      🛡️
+                    </span>
+                  )}
                   {arg.event.title}
                 </span>
               </div>

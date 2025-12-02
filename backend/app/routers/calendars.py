@@ -1,7 +1,4 @@
-"""
-行事曆 API 路由
-提供行事曆查詢、空檔查詢等 API 端點
-"""
+"""行事曆 API 路由"""
 
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -18,7 +15,7 @@ from ..models import (
     SyncStatus,
     UserInfo,
 )
-from ..services import CacheService, GraphService, SyncService
+from ..services import CacheService, GraphService, SyncService, OnCallService
 
 router = APIRouter(prefix="/api", tags=["calendars"])
 
@@ -26,18 +23,21 @@ router = APIRouter(prefix="/api", tags=["calendars"])
 _graph_service: Optional[GraphService] = None
 _cache_service: Optional[CacheService] = None
 _sync_service: Optional[SyncService] = None
+_oncall_service: Optional[OnCallService] = None
 
 
 def init_services(
     graph_service: GraphService,
     cache_service: CacheService,
     sync_service: SyncService,
+    oncall_service: OnCallService,
 ) -> None:
     """初始化服務實例"""
-    global _graph_service, _cache_service, _sync_service
+    global _graph_service, _cache_service, _sync_service, _oncall_service
     _graph_service = graph_service
     _cache_service = cache_service
     _sync_service = sync_service
+    _oncall_service = oncall_service
 
 
 def get_graph_service() -> GraphService:
@@ -61,6 +61,13 @@ def get_sync_service() -> SyncService:
     return _sync_service
 
 
+def get_oncall_service() -> OnCallService:
+    """取得值班服務"""
+    if _oncall_service is None:
+        raise HTTPException(status_code=500, detail="值班服務未初始化")
+    return _oncall_service
+
+
 @router.get("/calendars/events", response_model=CalendarEventResponse)
 async def get_events(
     start: Optional[datetime] = Query(None, description="開始日期"),
@@ -68,6 +75,7 @@ async def get_events(
     users: Optional[str] = Query(None, description="使用者信箱 (逗號分隔)，留空則取得所有人"),
     settings: Settings = Depends(get_settings),
     cache_service: CacheService = Depends(get_cache_service),
+    oncall_service: OnCallService = Depends(get_oncall_service),
 ):
     """
     取得行事曆事件
@@ -105,6 +113,7 @@ async def get_events(
             lastSync=None,
             calendars={email: [] for email in user_emails},
             users=user_infos,
+            oncallEvents=[],
         )
 
     # 篩選日期範圍
@@ -126,11 +135,53 @@ async def get_events(
             filtered_calendars[email] = filtered_events
         calendars = filtered_calendars
 
+    oncall_events = oncall_service.get_all_events(user_infos)
+
+    if start or end:
+        filtered_oncall: List[CalendarEvent] = []
+        for event in oncall_events:
+            event_start = event.start.date_time
+            event_end = event.end.date_time
+            if start and event_end < start:
+                continue
+            if end and event_start > end:
+                continue
+            filtered_oncall.append(event)
+        oncall_events = filtered_oncall
+
     return CalendarEventResponse(
         lastSync=cache_service.last_sync,
         calendars=calendars,
         users=user_infos,
+        oncallEvents=oncall_events,
     )
+
+
+@router.get("/calendars/oncall", response_model=List[CalendarEvent])
+async def get_oncall(
+    year: Optional[int] = Query(None, description="年份 (YYYY)"),
+    month: Optional[int] = Query(None, ge=1, le=12, description="月份 (1-12)"),
+    settings: Settings = Depends(get_settings),
+    cache_service: CacheService = Depends(get_cache_service),
+    oncall_service: OnCallService = Depends(get_oncall_service),
+):
+    """取得值班行程，預設回傳所有月份，若提供年+月則只回傳單一月份"""
+
+    if year is not None and month is None:
+        raise HTTPException(status_code=400, detail="請同時提供年份與月份，或全部留空")
+
+    user_emails = settings.user_email_list
+    user_infos = cache_service.get_users(user_emails)
+    if not user_infos:
+        user_infos = [
+            UserInfo(email=email, display_name=email.split("@")[0], color="#3174ad")
+            for email in user_emails
+        ]
+
+    if year is not None and month is not None:
+        return oncall_service.get_oncall_events(year, month, user_infos)
+
+    return oncall_service.get_all_events(user_infos)
 
 
 @router.get("/calendars/availability", response_model=AvailabilityResponse)

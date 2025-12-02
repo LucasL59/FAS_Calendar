@@ -30,6 +30,7 @@
 - 🔵 **今日標記重新設計**：藍色圓點僅包覆陽曆日期數字，農曆與節氣保持在外側，視覺一致。
 - ➕ **建立事件捷徑**：標頭新增「建立」按鈕，點擊即開啟 Outlook Web `deeplink/compose` 建立事件，與原有「尋找空檔」並列。
 - 🛡️ **Service Worker 改進**：濾除 `chrome-extension://` 等非 HTTP 請求，避免快取錯誤訊息干擾開發。
+- 📘 **值班紀錄可視化**：後端加入 `oncall_schedule.json` 管理各月份值班表，`GET /api/calendars/events` 與 `GET /api/calendars/oncall` 會回傳對應資料；前端「其他日曆」區可切換值班顯示並以同仁色碼加上 🛡️ 圖示呈現。
 
 ## 技術架構
 

@@ -24,6 +24,9 @@ interface UserSelectorProps {
   onToggleHolidays?: () => void;
   showLunar?: boolean;
   onToggleLunar?: () => void;
+  showOncall?: boolean;
+  onToggleOncall?: () => void;
+  oncallEvents?: CalendarEvent[];
   userColorOverrides?: Record<string, string>;
   onUserColorChange?: (email: string, color: string) => void;
 }
@@ -37,6 +40,9 @@ export function UserSelector({
   onToggleHolidays,
   showLunar = true,
   onToggleLunar,
+  showOncall = true,
+  onToggleOncall,
+  oncallEvents = [],
   userColorOverrides = {},
   onUserColorChange,
 }: UserSelectorProps) {
@@ -242,6 +248,21 @@ export function UserSelector({
           </label>
         )}
 
+        {!isPersonalCollapsed && onToggleOncall && (
+          <label
+            className="flex items-center gap-3 px-3 py-1.5 rounded-r-full cursor-pointer hover:bg-gray-100 transition-colors text-sm"
+            onClick={onToggleOncall}
+          >
+            <div
+              className="w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0 border-indigo-500"
+              style={{ backgroundColor: showOncall ? '#6366f1' : 'transparent' }}
+            >
+              {showOncall && <Check className="w-3 h-3 text-white stroke-[3]" />}
+            </div>
+            <div className="flex-1 min-w-0 text-gray-700 font-medium">值班紀錄</div>
+          </label>
+        )}
+
         {!isPersonalCollapsed && showHolidays && holidays.length > 0 && (
           <div className="mt-2 pl-10 pr-2 space-y-1">
             {holidays.slice(0, 5).map((holiday) => (
@@ -254,6 +275,24 @@ export function UserSelector({
                 </span>
                 <span className="truncate" title={holiday.subject}>
                   {holiday.subject}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isPersonalCollapsed && showOncall && oncallEvents.length > 0 && (
+          <div className="mt-2 pl-10 pr-2 space-y-1">
+            {oncallEvents.slice(0, 5).map((shift) => (
+              <div
+                key={shift.id}
+                className="text-xs text-gray-500 flex gap-2 items-center py-0.5 hover:text-gray-800 transition-colors"
+              >
+                <span className="font-medium w-12 text-right flex-shrink-0">
+                  {format(new Date(shift.start.dateTime), 'M/d', { locale: zhTW })}
+                </span>
+                <span className="truncate" title={shift.subject}>
+                  {shift.subject.replace(/^值班｜/, '')}
                 </span>
               </div>
             ))}

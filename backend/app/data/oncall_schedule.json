@@ -1,0 +1,26 @@
+{
+  "2025-10": [
+    { "start": "2025-10-01", "end": "2025-10-05", "userEmail": "wini@fas.com.tw" },
+    { "start": "2025-10-06", "end": "2025-10-10", "userEmail": "rachel@fas.com.tw" },
+    { "start": "2025-10-11", "end": "2025-10-15", "userEmail": "kim@fas.com.tw" },
+    { "start": "2025-10-16", "end": "2025-10-20", "userEmail": "amy@fas.com.tw" },
+    { "start": "2025-10-21", "end": "2025-10-25", "userEmail": "yelo@fas.com.tw" },
+    { "start": "2025-10-26", "end": "2025-10-31", "userEmail": "lucas@fas.com.tw" }
+  ],
+  "2025-11": [
+    { "start": "2025-11-01", "end": "2025-11-05", "userEmail": "lucas@fas.com.tw" },
+    { "start": "2025-11-06", "end": "2025-11-10", "userEmail": "kim@fas.com.tw" },
+    { "start": "2025-11-11", "end": "2025-11-15", "userEmail": "amy@fas.com.tw" },
+    { "start": "2025-11-16", "end": "2025-11-20", "userEmail": "wini@fas.com.tw" },
+    { "start": "2025-11-21", "end": "2025-11-25", "userEmail": "yelo@fas.com.tw" },
+    { "start": "2025-11-26", "end": "2025-11-30", "userEmail": "rachel@fas.com.tw" }
+  ],
+  "2025-12": [
+    { "start": "2025-12-01", "end": "2025-12-06", "userEmail": "rachel@fas.com.tw" },
+    { "start": "2025-12-07", "end": "2025-12-11", "userEmail": "wini@fas.com.tw" },
+    { "start": "2025-12-12", "end": "2025-12-16", "userEmail": "lucas@fas.com.tw" },
+    { "start": "2025-12-17", "end": "2025-12-21", "userEmail": "yelo@fas.com.tw" },
+    { "start": "2025-12-22", "end": "2025-12-26", "userEmail": "amy@fas.com.tw" },
+    { "start": "2025-12-27", "end": "2025-12-31", "userEmail": "kim@fas.com.tw" }
+  ]
+}

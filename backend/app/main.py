@@ -13,7 +13,7 @@ from loguru import logger
 from .config import get_settings
 from .routers import calendars_router
 from .routers.calendars import init_services
-from .services import CacheService, GraphService, SyncService
+from .services import CacheService, GraphService, SyncService, OnCallService
 
 # 設定 loguru
 logger.add(
@@ -36,9 +36,10 @@ async def lifespan(app: FastAPI):
     graph_service = GraphService(settings)
     cache_service = CacheService(settings)
     sync_service = SyncService(graph_service, cache_service, settings)
+    oncall_service = OnCallService(settings)
 
     # 注入服務到路由
-    init_services(graph_service, cache_service, sync_service)
+    init_services(graph_service, cache_service, sync_service, oncall_service)
 
     # 啟動排程器
     if settings.is_azure_configured:
