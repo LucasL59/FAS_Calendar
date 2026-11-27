@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Menu, X, Settings, Search, HelpCircle, Clock, Sun, Moon, Monitor, Plus, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Menu, X, Settings, Search, HelpCircle, Clock, Sun, Moon, Monitor, Plus, ChevronDown, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { CalendarView } from './components/CalendarView';
 import { UserSelector } from './components/UserSelector';
 import { MiniMonthCalendar } from './components/MiniMonthCalendar';
@@ -165,6 +165,8 @@ function App() {
     setEventAnchorRect(anchor ?? null);
   }, [userColorMap]);
   const handleSync = useCallback(() => triggerSync(), [triggerSync]);
+  const syncBusy = isSyncing || Boolean(syncStatus?.isSyncing);
+  const syncErrorMessage = syncStatus?.errorMessage?.trim() || null;
   const toggleHolidays = useCallback(() => setShowHolidays(prev => !prev), []);
   const toggleOncall = useCallback(() => setShowOncall(prev => !prev), []);
   const handleUserColorChange = useCallback((email: string, color: string) => {
@@ -401,10 +403,29 @@ function App() {
 
         {/* 右側工具區 */}
         <div className="flex items-center gap-1 sm:gap-2">
-          {/* 同步狀態 - 垂直排列縮小 */}
-          <div className="hidden md:flex flex-col items-end text-[10px] text-gray-400 leading-tight mr-1">
-            <span>{syncStatus?.lastSync ? new Date(syncStatus.lastSync).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--'}</span>
-            <span>{syncStatus?.totalEvents ?? 0}事件/{syncStatus?.totalUsers ?? 0}人</span>
+          {/* 同步狀態 - 垂直排列縮小，並可立即重試 */}
+          <div className="mr-1 hidden items-center gap-1.5 md:flex">
+            <div className="flex max-w-[10rem] flex-col items-end text-[10px] leading-tight" aria-live="polite">
+              <span className="tabular-nums text-gray-400">{syncStatus?.lastSync ? new Date(syncStatus.lastSync).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--'}</span>
+              <span className="tabular-nums text-gray-400">{syncBusy ? '同步中' : `${syncStatus?.totalEvents ?? 0}事件/${syncStatus?.totalUsers ?? 0}人`}</span>
+              {syncErrorMessage && (
+                <span className="max-w-full truncate text-red-600 dark:text-red-400" title={syncErrorMessage}>
+                  {syncErrorMessage}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={syncBusy}
+              aria-label="立即同步"
+              aria-busy={syncBusy}
+              title={syncBusy ? '同步中' : '立即同步'}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-blue-700 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-blue-300 dark:hover:bg-gray-800"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${syncBusy ? 'motion-safe:animate-spin' : ''}`} aria-hidden="true" />
+              <span>{syncBusy ? '同步中' : '同步'}</span>
+            </button>
           </div>
           
           {/* 搜尋框 - 可展開收合 */}
